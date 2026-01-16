@@ -57,11 +57,24 @@ gradik stop
 # Restart
 gradik restart
 
+# Uninstall completely
+gradik uninstall
+
 # Run in foreground (for debugging)
 gradik start --foreground
 
 # Or just run directly (foreground)
 gradik
+```
+
+### Uninstall
+
+```bash
+# Remove all Gradik files and config
+gradik uninstall
+
+# Then remove pip package
+pip3 uninstall gradik
 ```
 
 ## Features

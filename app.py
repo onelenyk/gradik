@@ -1637,6 +1637,38 @@ def cmd_restart(port=None):
     return cmd_start(port)
 
 
+def cmd_uninstall():
+    """Uninstall Gradik completely."""
+    import shutil
+    
+    print("🗑️  Uninstalling Gradik...")
+    print()
+    
+    # Stop if running
+    if PID_FILE.exists():
+        print("   Stopping service...")
+        cmd_stop()
+    
+    # Remove config directory
+    if CONFIG_DIR.exists():
+        print(f"   Removing {CONFIG_DIR}")
+        shutil.rmtree(CONFIG_DIR)
+    
+    # Remove repo directory
+    repo_dir = Path.home() / '.gradik-repo'
+    if repo_dir.exists():
+        print(f"   Removing {repo_dir}")
+        shutil.rmtree(repo_dir)
+    
+    print()
+    print("✅ Gradik uninstalled!")
+    print()
+    print("   To remove pip package, run:")
+    print("   pip3 uninstall gradik")
+    print()
+    return 0
+
+
 def main():
     """Entry point for the gradik command."""
     import argparse
@@ -1663,6 +1695,9 @@ def main():
     # status command
     subparsers.add_parser('status', help='Show Gradik status')
     
+    # uninstall command
+    subparsers.add_parser('uninstall', help='Uninstall Gradik completely')
+    
     # For backwards compatibility: run directly without subcommand
     parser.add_argument('-p', '--port', type=int, help='Port to run on (when running directly)')
     
@@ -1676,6 +1711,8 @@ def main():
         return cmd_restart(args.port)
     elif args.command == 'status':
         return cmd_status()
+    elif args.command == 'uninstall':
+        return cmd_uninstall()
     else:
         # No subcommand - run in foreground (backwards compatible)
         port = args.port or CURRENT_PORT
