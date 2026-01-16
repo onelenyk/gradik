@@ -24,7 +24,7 @@ cd gradik
 ### Option 3: One-liner
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/onelenyk/gradik/main/run.sh | bash
+curl -fsSL https://raw.githubusercontent.com/onelenyk/gradik/master/run.sh | bash
 ```
 
 ### Option 4: Standalone binary
