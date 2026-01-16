@@ -21,11 +21,13 @@ cd gradik
 ./run.sh
 ```
 
-### Option 3: One-liner
+### Option 3: One-liner install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/onelenyk/gradik/master/run.sh | bash
+curl -fsSL https://raw.githubusercontent.com/onelenyk/gradik/master/install.sh | bash
 ```
+
+Installs to `~/gradik` with all dependencies.
 
 ### Option 4: Standalone binary
 
