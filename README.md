@@ -4,16 +4,39 @@ A lightweight dashboard to monitor Gradle daemons, Kotlin daemons, Android Studi
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue) ![Flask](https://img.shields.io/badge/Flask-3.0-green) ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-## Installation
+## Installation (End Users)
 
-### Option 1: pip install (Recommended)
+### One-liner install (Recommended)
 
 ```bash
-pip install git+https://github.com/onelenyk/gradik.git
+curl -fsSL https://raw.githubusercontent.com/onelenyk/gradik/master/install.sh | bash
+```
+
+Downloads pre-built binary to `/usr/local/bin/gradik`. Then just run:
+
+```bash
 gradik start
 ```
 
-### Option 2: Quick run (No install)
+### Manual download
+
+```bash
+# Download latest release
+curl -fsSL https://github.com/onelenyk/gradik/releases/latest/download/gradik -o gradik
+chmod +x gradik
+sudo mv gradik /usr/local/bin/
+
+# Start it
+gradik start
+```
+
+---
+
+## Development Setup
+
+For developers who want to modify the code:
+
+### Clone and run directly
 
 ```bash
 git clone https://github.com/onelenyk/gradik.git
@@ -21,22 +44,20 @@ cd gradik
 ./run.sh
 ```
 
-### Option 3: One-liner install
+### Install as editable package
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/onelenyk/gradik/master/install.sh | bash
-```
-
-Installs globally. After install, just run:
-```bash
+git clone https://github.com/onelenyk/gradik.git
+cd gradik
+pip install -e .
 gradik start
 ```
 
-### Option 4: Standalone binary
+### Build standalone binary
 
 ```bash
 ./build.sh
-./dist/gradik start
+./dist/gradik
 ```
 
 ## Usage
