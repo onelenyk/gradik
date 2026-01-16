@@ -27,7 +27,10 @@ cd gradik
 curl -fsSL https://raw.githubusercontent.com/onelenyk/gradik/master/install.sh | bash
 ```
 
-Installs to `~/gradik` with all dependencies.
+Installs globally. After install, just run:
+```bash
+gradik start
+```
 
 ### Option 4: Standalone binary
 
