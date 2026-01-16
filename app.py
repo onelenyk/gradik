@@ -1714,21 +1714,14 @@ def main():
     elif args.command == 'uninstall':
         return cmd_uninstall()
     else:
-        # No subcommand - run in foreground (backwards compatible)
-        port = args.port or CURRENT_PORT
-        write_pid()
-        try:
-            print(f"🚀 Gradik - Gradle Status Dashboard")
-            print(f"   Port: {port}")
-            print(f"   Config: {CONFIG_FILE}")
-            print(f"   Open http://localhost:{port} in your browser")
-            print()
-            print("   Tip: Use 'gradik start' to run in background")
-            print()
-            app.run(host='0.0.0.0', port=port, debug=False)
-        finally:
-            remove_pid()
-        return 0
+        # No subcommand - show help instead of auto-starting
+        parser.print_help()
+        print()
+        print("💡 Quick start:")
+        print("   gradik start           # Run in background")
+        print("   gradik start -f        # Run in foreground")
+        print("   gradik status          # Check if running")
+        return 1
 
 
 if __name__ == '__main__':
