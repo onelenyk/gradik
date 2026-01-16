@@ -32,7 +32,7 @@ git clone -q "$REPO_URL" "$INSTALL_DIR"
 
 # Install globally with pip
 echo "📦 Installing Gradik globally..."
-pip3 install -e "$INSTALL_DIR" -q
+python3 -m pip install --user "$INSTALL_DIR" -q 2>&1 | grep -v "WARNING:" || true
 
 echo ""
 echo "✅ Installation complete!"
