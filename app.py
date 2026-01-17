@@ -6,6 +6,7 @@ import re
 import os
 import sys
 import json
+import shutil
 import psutil
 from datetime import datetime
 from flask import Flask, jsonify, render_template_string, request
@@ -1566,7 +1567,19 @@ def cmd_start(port=None, foreground=False):
         # Detect if running as PyInstaller binary or Python script
         if getattr(sys, 'frozen', False):
             # Running as PyInstaller binary
-            executable = sys.executable
+            # sys.argv[0] should be the binary path, but might be relative if called from PATH
+            exe_name = sys.argv[0]
+            if os.path.isabs(exe_name):
+                # Absolute path - use as is
+                executable = f'"{exe_name}"'
+            else:
+                # Relative path (e.g., "gradik") - try to find it in PATH
+                full_path = shutil.which(exe_name)
+                if full_path:
+                    executable = f'"{full_path}"'
+                else:
+                    # Fallback: use basename and hope it's in PATH
+                    executable = exe_name
         else:
             # Running as Python script
             script_path = os.path.abspath(__file__)
