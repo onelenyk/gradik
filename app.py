@@ -1558,11 +1558,19 @@ def cmd_start(port=None, foreground=False):
             remove_pid()
     else:
         # Run as daemon in background
-        script_path = os.path.abspath(__file__)
         log_file = CONFIG_DIR / 'gradik.log'
         
+        # Detect if running as PyInstaller binary or Python script
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller binary
+            executable = sys.executable
+        else:
+            # Running as Python script
+            script_path = os.path.abspath(__file__)
+            executable = f'python3 "{script_path}"'
+        
         # Start detached process
-        cmd = f'nohup python3 "{script_path}" start --foreground --port {actual_port} > "{log_file}" 2>&1 &'
+        cmd = f'nohup {executable} start --foreground --port {actual_port} > "{log_file}" 2>&1 &'
         os.system(cmd)
         
         # Wait a moment and check if it started
