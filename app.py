@@ -1571,23 +1571,32 @@ def cmd_start(port=None, foreground=False):
             exe_name = sys.argv[0]
             if os.path.isabs(exe_name):
                 # Absolute path - use as is
-                executable = f'"{exe_name}"'
+                exe_path = exe_name
             else:
                 # Relative path (e.g., "gradik") - try to find it in PATH
                 full_path = shutil.which(exe_name)
                 if full_path:
-                    executable = f'"{full_path}"'
+                    exe_path = full_path
                 else:
                     # Fallback: use basename and hope it's in PATH
-                    executable = exe_name
+                    exe_path = exe_name
+            # For PyInstaller binary, use it directly
+            args = [exe_path, 'start', '--foreground', '--port', str(actual_port)]
         else:
             # Running as Python script
             script_path = os.path.abspath(__file__)
-            executable = f'python3 "{script_path}"'
+            args = ['python3', script_path, 'start', '--foreground', '--port', str(actual_port)]
         
-        # Start detached process
-        cmd = f'nohup {executable} start --foreground --port {actual_port} > "{log_file}" 2>&1 &'
-        os.system(cmd)
+        # Start detached process using subprocess (more reliable than os.system)
+        with open(log_file, 'w') as log:
+            process = subprocess.Popen(
+                args,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,  # Detach from parent
+                cwd=os.getcwd()
+            )
         
         # Wait a moment and check if it started
         import time
