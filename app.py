@@ -1535,6 +1535,9 @@ def remove_pid():
 
 def cmd_start(port=None, foreground=False):
     """Start Gradik dashboard."""
+    # Ensure config directory exists
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    
     running_pid = get_running_pid()
     if running_pid:
         print(f"⚠️  Gradik is already running (PID {running_pid})")
