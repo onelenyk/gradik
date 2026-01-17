@@ -2,7 +2,7 @@
 # Build standalone Gradik binary
 
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 echo "🔨 Building Gradik..."
 

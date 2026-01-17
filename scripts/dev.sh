@@ -1,6 +1,7 @@
 #!/bin/bash
+# Quick start for development
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 # Check Python
 if ! command -v python3 &> /dev/null; then

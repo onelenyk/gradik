@@ -2,7 +2,7 @@
 # Build and prepare Gradik for GitHub Release
 
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 VERSION=${1:-"1.0.0"}
 
@@ -10,7 +10,7 @@ echo "📦 Building Gradik v$VERSION for release..."
 echo ""
 
 # Build binary
-./build.sh
+./scripts/build.sh
 
 # Test binary
 echo ""

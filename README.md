@@ -41,7 +41,7 @@ For developers who want to modify the code:
 ```bash
 git clone https://github.com/onelenyk/gradik.git
 cd gradik
-./run.sh
+./scripts/dev.sh
 ```
 
 ### Install as editable package
@@ -56,8 +56,11 @@ gradik start
 ### Build standalone binary
 
 ```bash
-./build.sh
-./dist/gradik
+./scripts/build.sh      # Creates dist/gradik
+./dist/gradik start     # Test it
+
+# Or use release helper
+./scripts/release.sh 1.0.0
 ```
 
 ## Usage
