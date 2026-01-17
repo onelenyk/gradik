@@ -56,11 +56,30 @@ gradik start
 ### Build standalone binary
 
 ```bash
-./scripts/build.sh      # Creates dist/gradik
-./dist/gradik start     # Test it
+make build           # Build binary
+make test            # Test binary
 
-# Or use release helper
-./scripts/release.sh 1.0.0
+# Or directly
+./scripts/build.sh
+./dist/gradik start
+```
+
+### Create a release
+
+**Automated (requires GitHub CLI):**
+```bash
+# Install GitHub CLI (one-time setup)
+brew install gh
+gh auth login
+
+# Create release
+make release VERSION=1.0.0
+```
+
+**Manual (no tools needed):**
+```bash
+make release-manual VERSION=1.0.0
+# Follow the instructions to upload to GitHub
 ```
 
 ## Usage
