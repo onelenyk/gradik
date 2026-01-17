@@ -56,7 +56,7 @@ gradik start
 ### Build standalone binary
 
 ```bash
-make build           # Build binary
+make build           # Build binary locally
 make test            # Test binary
 
 # Or directly
@@ -66,21 +66,24 @@ make test            # Test binary
 
 ### Create a release
 
-**Automated (requires GitHub CLI):**
-```bash
-# Install GitHub CLI (one-time setup)
-brew install gh
-gh auth login
+**Simple - GitHub Actions builds everything automatically:**
 
-# Create release
+```bash
 make release VERSION=1.0.0
 ```
 
-**Manual (no tools needed):**
-```bash
-make release-manual VERSION=1.0.0
-# Follow the instructions to upload to GitHub
-```
+This will:
+1. Create a git tag (`v1.0.0`)
+2. Push to GitHub
+3. **GitHub Actions automatically:**
+   - Builds the binary on macOS
+   - Tests it
+   - Creates the release
+   - Uploads the binary
+
+Just wait ~5 minutes and check: https://github.com/onelenyk/gradik/releases
+
+**No local builds, no manual uploads!** 🚀
 
 ## Usage
 

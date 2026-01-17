@@ -1,0 +1,89 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.9'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller flask psutil
+    
+    - name: Build binary
+      run: |
+        chmod +x scripts/build.sh
+        ./scripts/build.sh
+    
+    - name: Test binary
+      run: |
+        ./dist/gradik --help
+        ls -lh dist/gradik
+    
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Generate SHA256
+      id: sha256
+      run: |
+        SHA256=$(shasum -a 256 dist/gradik | cut -d' ' -f1)
+        echo "SHA256=$SHA256" >> $GITHUB_OUTPUT
+    
+    - name: Get binary size
+      id: size
+      run: |
+        SIZE=$(du -h dist/gradik | cut -f1)
+        echo "SIZE=$SIZE" >> $GITHUB_OUTPUT
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/gradik
+        body: |
+          ## Installation
+          
+          ```bash
+          curl -fsSL https://raw.githubusercontent.com/onelenyk/gradik/master/install.sh | bash
+          ```
+          
+          ## Binary Info
+          - **Size:** ${{ steps.size.outputs.SIZE }}
+          - **SHA256:** `${{ steps.sha256.outputs.SHA256 }}`
+          - **Platform:** macOS ARM64 (Apple Silicon)
+          
+          ## Features
+          - 📊 Monitor Gradle & Kotlin daemons
+          - 🎯 Track Android Studio & Emulators
+          - 💻 Monitor IDEs (VS Code, Cursor, Windsurf, etc.)
+          - 🌓 Dark/Light mode toggle
+          - 🚨 Smart alerts (stuck/idle processes)
+          - ⚡ Kill processes directly from dashboard
+          - 🔧 Configurable port (persistent)
+          
+          ## Usage
+          ```bash
+          gradik start          # Start in background
+          gradik stop           # Stop service
+          gradik status         # Check status
+          gradik start -p 8080  # Custom port
+          ```
+          
+          ## What's New in v${{ steps.get_version.outputs.VERSION }}
+          
+          See [CHANGELOG.md](https://github.com/onelenyk/gradik/blob/master/CHANGELOG.md) for details.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
