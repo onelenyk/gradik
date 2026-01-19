@@ -7,6 +7,7 @@ import os
 import sys
 import json
 import shutil
+import socket
 import psutil
 from datetime import datetime
 from flask import Flask, jsonify, render_template_string, request
@@ -1522,7 +1523,20 @@ def get_running_pid():
             if psutil.pid_exists(pid):
                 try:
                     proc = psutil.Process(pid)
-                    if 'python' in proc.name().lower() and 'gradik' in ' '.join(proc.cmdline()).lower():
+                    cmdline = ' '.join(proc.cmdline()).lower()
+                    proc_name = proc.name().lower()
+                    
+                    # Check if it's a Gradik process (works for both Python script and binary)
+                    # For Python script: cmdline contains 'gradik' or 'app.py'
+                    # For binary: process name is 'gradik' or cmdline contains 'gradik'
+                    is_gradik = (
+                        'gradik' in cmdline or 
+                        'app.py' in cmdline or
+                        proc_name == 'gradik' or
+                        'gradik' in proc_name
+                    )
+                    
+                    if is_gradik:
                         return pid
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
@@ -1608,10 +1622,21 @@ def cmd_start(port=None, foreground=False):
                 cwd=os.getcwd()
             )
         
-        # Wait a moment and check if it started
+        # Wait a moment for the process to start and write PID file
         import time
-        time.sleep(1)
+        time.sleep(2)  # Increased wait time
         
+        # Check if process is still running
+        try:
+            if process.poll() is not None:
+                # Process exited immediately
+                print(f"❌ Gradik process exited immediately (exit code: {process.returncode})")
+                print(f"   Check log: {log_file}")
+                return 1
+        except:
+            pass
+        
+        # Check for PID file
         new_pid = get_running_pid()
         if new_pid:
             print(f"✅ Gradik started (PID {new_pid})")
@@ -1619,9 +1644,27 @@ def cmd_start(port=None, foreground=False):
             print(f"   Log: {log_file}")
             print(f"   Stop: gradik stop")
         else:
-            print(f"❌ Failed to start Gradik")
-            print(f"   Check log: {log_file}")
-            return 1
+            # Process might be running but PID file not written yet, check if port is listening
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(1)
+                result = sock.connect_ex(('127.0.0.1', actual_port))
+                sock.close()
+                if result == 0:
+                    # Port is open, process is running
+                    print(f"✅ Gradik started (port {actual_port} is listening)")
+                    print(f"   URL: http://localhost:{actual_port}")
+                    print(f"   Log: {log_file}")
+                    print(f"   Stop: gradik stop")
+                    print(f"   ⚠️  Note: PID file not found, but server is running")
+                else:
+                    print(f"❌ Failed to start Gradik")
+                    print(f"   Check log: {log_file}")
+                    return 1
+            except:
+                print(f"❌ Failed to start Gradik")
+                print(f"   Check log: {log_file}")
+                return 1
     
     return 0
 
