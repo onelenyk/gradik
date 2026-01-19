@@ -1693,11 +1693,49 @@ def cmd_uninstall():
         print(f"   Removing {repo_dir}")
         shutil.rmtree(repo_dir)
     
+    # Try to remove the binary/command
+    exe_path = shutil.which('gradik')
+    if exe_path:
+        exe_path = Path(exe_path).resolve()
+        print(f"   Found gradik at: {exe_path}")
+        
+        # Check if it's a binary in /usr/local/bin (from install.sh)
+        if str(exe_path) == '/usr/local/bin/gradik' or exe_path.parent == Path('/usr/local/bin'):
+            print(f"   Removing binary: {exe_path}")
+            try:
+                exe_path.unlink()
+                print(f"   ✅ Removed binary")
+            except PermissionError:
+                print(f"   ⚠️  Need sudo to remove {exe_path}")
+                print(f"   Run: sudo rm {exe_path}")
+            except Exception as e:
+                print(f"   ⚠️  Could not remove binary: {e}")
+                print(f"   Please run manually: sudo rm {exe_path}")
+        # Check if it's a pip-installed script
+        elif 'site-packages' in str(exe_path) or (exe_path.parent.name == 'bin' and 'python' in str(exe_path.parent.parent)):
+            print(f"   Detected pip installation")
+            print(f"   Attempting pip uninstall...")
+            try:
+                result = subprocess.run(
+                    ['pip3', 'uninstall', 'gradik', '-y'],
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                if result.returncode == 0:
+                    print(f"   ✅ Removed via pip")
+                else:
+                    print(f"   ⚠️  Pip uninstall failed")
+                    print(f"   Run manually: pip3 uninstall gradik")
+            except Exception as e:
+                print(f"   ⚠️  Could not uninstall via pip: {e}")
+                print(f"   Run manually: pip3 uninstall gradik")
+        else:
+            print(f"   ⚠️  Unknown installation location: {exe_path}")
+            print(f"   Please remove manually: rm {exe_path}")
+    
     print()
     print("✅ Gradik uninstalled!")
-    print()
-    print("   To remove pip package, run:")
-    print("   pip3 uninstall gradik")
     print()
     return 0
 
