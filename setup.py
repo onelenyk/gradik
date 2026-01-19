@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """Setup script for gradik."""
 from setuptools import setup, find_packages
+from pathlib import Path
+
+# Read version from VERSION file
+def get_version():
+    version_file = Path(__file__).parent / 'VERSION'
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return '0.0.0'
 
 setup(
     name='gradik',
-    version='1.0.0',
+    version=get_version(),
     description='Lightweight web dashboard to monitor and kill Gradle daemons, Kotlin, Android Studio, and IDE processes.',
     author='onelenyk',
     url='https://github.com/onelenyk/gradik',

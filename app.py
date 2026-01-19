@@ -15,6 +15,16 @@ from pathlib import Path
 APP_START_TIME = datetime.now()
 APP_PID = os.getpid()
 
+# Version - read from VERSION file
+def get_version():
+    """Get version from VERSION file."""
+    version_file = Path(__file__).parent / 'VERSION'
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return '0.0.0'
+
+__version__ = get_version()
+
 # Config file location
 CONFIG_DIR = Path.home() / '.gradik'
 CONFIG_FILE = CONFIG_DIR / 'config.json'
@@ -1748,6 +1758,8 @@ def main():
         prog='gradik',
         description='Gradle Status Dashboard - Monitor Gradle, Kotlin daemons, IDEs, and more'
     )
+    
+    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
     
     subparsers = parser.add_subparsers(dest='command', help='Commands')
     
