@@ -2857,6 +2857,27 @@ GITHUB_API_URL = f'https://api.github.com/repos/{GITHUB_REPO}/releases/latest'
 UPDATE_CHECK_CACHE_DURATION = 3600  # 1 hour
 
 
+def get_ssl_context():
+    """Create SSL context with proper certificate handling for macOS and Linux.
+    Uses certifi (included in requirements) for reliable certificate handling.
+    """
+    try:
+        # Use certifi for reliable certificate handling (included in requirements.txt)
+        import certifi
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        # Fallback: try default context (may not work on all macOS installations)
+        try:
+            return ssl.create_default_context()
+        except Exception:
+            # Last resort: this should rarely happen if certifi is installed
+            # But we provide it as a fallback
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            return context
+
+
 def compare_versions(current, latest):
     """Compare two version strings (semver format).
     Returns: -1 if current < latest, 0 if equal, 1 if current > latest
@@ -2950,8 +2971,8 @@ def check_for_updates(force=False):
         return result
     
     try:
-        # Create SSL context with default certificates
-        ssl_context = ssl.create_default_context()
+        # Create SSL context with proper certificate handling
+        ssl_context = get_ssl_context()
         
         # Fetch latest release from GitHub API
         req = urllib.request.Request(
@@ -3044,7 +3065,7 @@ def install_update(latest_version):
             return result
         
         # Find binary download URL
-        ssl_context = ssl.create_default_context()
+        ssl_context = get_ssl_context()
         req = urllib.request.Request(
             GITHUB_API_URL,
             headers={'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Gradik-Updater'}
@@ -3081,7 +3102,7 @@ def install_update(latest_version):
         
         try:
             # Download binary
-            ssl_context = ssl.create_default_context()
+            ssl_context = get_ssl_context()
             req = urllib.request.Request(
                 binary_url,
                 headers={'User-Agent': 'Gradik-Updater'}

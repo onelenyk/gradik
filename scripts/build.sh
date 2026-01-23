@@ -14,7 +14,7 @@ fi
 
 # Install build dependencies
 echo "📦 Installing build dependencies..."
-pip3 install pyinstaller flask psutil -q
+pip3 install pyinstaller flask psutil certifi -q
 
 # Build standalone binary
 echo "⚙️  Creating standalone binary..."
@@ -23,6 +23,8 @@ pyinstaller --onefile \
     --add-data "gradik:gradik" \
     --hidden-import flask \
     --hidden-import psutil \
+    --hidden-import certifi \
+    --collect-data certifi \
     --clean \
     --noconfirm \
     app.py
