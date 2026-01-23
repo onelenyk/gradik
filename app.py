@@ -11,6 +11,7 @@ import socket
 import psutil
 import hashlib
 import time
+import ssl
 import urllib.request
 import urllib.error
 from datetime import datetime
@@ -2949,13 +2950,16 @@ def check_for_updates(force=False):
         return result
     
     try:
+        # Create SSL context with default certificates
+        ssl_context = ssl.create_default_context()
+        
         # Fetch latest release from GitHub API
         req = urllib.request.Request(
             GITHUB_API_URL,
             headers={'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Gradik-Updater'}
         )
         
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=10, context=ssl_context) as response:
             data = json.loads(response.read().decode('utf-8'))
             
             latest_version = data.get('tag_name', '').lstrip('v')
@@ -3040,12 +3044,13 @@ def install_update(latest_version):
             return result
         
         # Find binary download URL
+        ssl_context = ssl.create_default_context()
         req = urllib.request.Request(
             GITHUB_API_URL,
             headers={'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Gradik-Updater'}
         )
         
-        with urllib.request.urlopen(req, timeout=10) as response:
+        with urllib.request.urlopen(req, timeout=10, context=ssl_context) as response:
             data = json.loads(response.read().decode('utf-8'))
             assets = data.get('assets', [])
             binary_url = None
@@ -3076,12 +3081,13 @@ def install_update(latest_version):
         
         try:
             # Download binary
+            ssl_context = ssl.create_default_context()
             req = urllib.request.Request(
                 binary_url,
                 headers={'User-Agent': 'Gradik-Updater'}
             )
             
-            with urllib.request.urlopen(req, timeout=30) as response:
+            with urllib.request.urlopen(req, timeout=30, context=ssl_context) as response:
                 total_size = int(response.headers.get('Content-Length', 0))
                 downloaded = 0
                 
