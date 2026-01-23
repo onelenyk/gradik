@@ -369,6 +369,21 @@ HTML_TEMPLATE = '''
         .alert-dismiss:hover { opacity: 1; }
 
         /* Stats Row */
+        .stats-row-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-row-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+        }
+
         .stats-row {
             display: flex;
             gap: 0.5rem;
@@ -395,7 +410,10 @@ HTML_TEMPLATE = '''
         .stat.kotlin .stat-value { color: var(--kotlin-purple); }
         .stat.studio .stat-value { color: var(--studio-green); }
         .stat.emulator .stat-value { color: var(--accent-orange); }
-        .stat.ide .stat-value { color: #ec4899; }
+        .stat.cursor .stat-value { color: #3b82f6; }
+        .stat.windsurf .stat-value { color: #06b6d4; }
+        .stat.vscode .stat-value { color: #007acc; }
+        .stat.ide_other .stat-value { color: #ec4899; }
         .stat.java .stat-value { color: var(--accent-cyan); }
         .stat.memory .stat-value { color: var(--accent-blue); }
 
@@ -449,7 +467,10 @@ HTML_TEMPLATE = '''
         .section-title.kotlin .dot { background: var(--kotlin-purple); }
         .section-title.studio .dot { background: var(--studio-green); }
         .section-title.emulator .dot { background: var(--accent-orange); }
-        .section-title.ide .dot { background: #ec4899; }
+        .section-title.cursor .dot { background: #3b82f6; }
+        .section-title.windsurf .dot { background: #06b6d4; }
+        .section-title.vscode .dot { background: #007acc; }
+        .section-title.ide_other .dot { background: #ec4899; }
         .section-title.java .dot { background: var(--accent-cyan); }
 
         .section-count {
@@ -457,6 +478,73 @@ HTML_TEMPLATE = '''
             padding: 0.125rem 0.375rem;
             border-radius: 4px;
             font-size: 10px;
+        }
+
+        .section-close-all {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--accent-red);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 500;
+            transition: all 0.15s;
+            opacity: 0.7;
+        }
+
+        .section-close-all:hover {
+            background: var(--danger-bg);
+            border-color: var(--accent-red);
+            opacity: 1;
+        }
+
+        .section-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sort-buttons {
+            display: flex;
+            gap: 0.25rem;
+            align-items: center;
+        }
+
+        .sort-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.375rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: all 0.15s;
+            opacity: 0.6;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .sort-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+            opacity: 1;
+        }
+
+        .sort-btn.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+            opacity: 1;
+        }
+
+        .sort-btn.active.desc::after {
+            content: ' ↓';
+        }
+
+        .sort-btn.active.asc::after {
+            content: ' ↑';
         }
 
         /* Process Table */
@@ -534,6 +622,7 @@ HTML_TEMPLATE = '''
         }
         .process-meta .user { color: var(--accent-purple); }
         .process-meta .heap { color: var(--accent-orange); }
+        .process-meta .parent { color: var(--accent-cyan); font-style: italic; }
 
         .mem { color: var(--accent-orange); text-align: right; font-size: 11px; }
         .cpu { color: var(--accent-green); text-align: right; font-size: 11px; }
@@ -655,50 +744,78 @@ HTML_TEMPLATE = '''
             <div class="alerts" id="alerts"></div>
         </div>
 
-        <div class="stats-row">
-            <div class="stat gradle" id="stat-gradle">
+        <div class="stats-row-header">
+            <div class="stats-row-title">Categories</div>
+            <div class="sort-buttons">
+                <button class="sort-btn" onclick="sortStatsBy('memory')" title="Sort categories by memory">💾</button>
+                <button class="sort-btn" onclick="sortStatsBy('cpu')" title="Sort categories by CPU">⚡</button>
+            </div>
+        </div>
+        <div class="stats-row" id="stats-row">
+            <div class="stat gradle" id="stat-gradle" data-category="gradle">
                 <span class="stat-icon">⚙</span>
                 <div>
                     <div class="stat-value" id="gradle-count">-</div>
                     <div class="stat-label">Gradle</div>
                 </div>
             </div>
-            <div class="stat kotlin" id="stat-kotlin">
+            <div class="stat kotlin" id="stat-kotlin" data-category="kotlin">
                 <span class="stat-icon">K</span>
                 <div>
                     <div class="stat-value" id="kotlin-count">-</div>
                     <div class="stat-label">Kotlin</div>
                 </div>
             </div>
-            <div class="stat studio" id="stat-studio">
+            <div class="stat studio" id="stat-studio" data-category="studio">
                 <span class="stat-icon">📱</span>
                 <div>
                     <div class="stat-value" id="studio-count">-</div>
                     <div class="stat-label">Studio</div>
                 </div>
             </div>
-            <div class="stat emulator" id="stat-emulator">
+            <div class="stat emulator" id="stat-emulator" data-category="emulator">
                 <span class="stat-icon">📟</span>
                 <div>
                     <div class="stat-value" id="emulator-count">-</div>
                     <div class="stat-label">Emulator</div>
                 </div>
             </div>
-            <div class="stat ide" id="stat-ide">
-                <span class="stat-icon">📝</span>
+            <div class="stat cursor" id="stat-cursor" data-category="cursor">
+                <span class="stat-icon">✏️</span>
                 <div>
-                    <div class="stat-value" id="ide-count">-</div>
-                    <div class="stat-label">IDEs</div>
+                    <div class="stat-value" id="cursor-count">-</div>
+                    <div class="stat-label">Cursor</div>
                 </div>
             </div>
-            <div class="stat java" id="stat-java">
+            <div class="stat windsurf" id="stat-windsurf" data-category="windsurf">
+                <span class="stat-icon">🌊</span>
+                <div>
+                    <div class="stat-value" id="windsurf-count">-</div>
+                    <div class="stat-label">Windsurf</div>
+                </div>
+            </div>
+            <div class="stat vscode" id="stat-vscode" data-category="vscode">
+                <span class="stat-icon">📝</span>
+                <div>
+                    <div class="stat-value" id="vscode-count">-</div>
+                    <div class="stat-label">VS Code</div>
+                </div>
+            </div>
+            <div class="stat ide_other" id="stat-ide-other" data-category="ide_other">
+                <span class="stat-icon">💻</span>
+                <div>
+                    <div class="stat-value" id="ide-other-count">-</div>
+                    <div class="stat-label">Other IDEs</div>
+                </div>
+            </div>
+            <div class="stat java" id="stat-java" data-category="java">
                 <span class="stat-icon">☕</span>
                 <div>
                     <div class="stat-value" id="java-count">-</div>
                     <div class="stat-label">Java</div>
                 </div>
             </div>
-            <div class="stat memory" id="stat-memory">
+            <div class="stat memory" id="stat-memory" data-category="total">
                 <span class="stat-icon">💾</span>
                 <div>
                     <div class="stat-value" id="total-memory">-</div>
@@ -718,6 +835,13 @@ HTML_TEMPLATE = '''
         <div class="section" id="section-gradle">
             <div class="section-header">
                 <div class="section-title gradle"><span class="dot"></span>Gradle <span class="section-count" id="gradle-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('gradle', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('gradle', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('gradle')" title="Close all Gradle processes">⏹ Close All</button>
+                </div>
             </div>
             <div class="process-table" id="gradle-list"></div>
         </div>
@@ -725,6 +849,13 @@ HTML_TEMPLATE = '''
         <div class="section" id="section-kotlin">
             <div class="section-header">
                 <div class="section-title kotlin"><span class="dot"></span>Kotlin <span class="section-count" id="kotlin-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('kotlin', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('kotlin', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('kotlin')" title="Close all Kotlin processes">⏹ Close All</button>
+                </div>
             </div>
             <div class="process-table" id="kotlin-list"></div>
         </div>
@@ -732,6 +863,13 @@ HTML_TEMPLATE = '''
         <div class="section" id="section-studio">
             <div class="section-header">
                 <div class="section-title studio"><span class="dot"></span>Android Studio <span class="section-count" id="studio-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('studio', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('studio', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('studio')" title="Close all Android Studio processes">⏹ Close All</button>
+                </div>
             </div>
             <div class="process-table" id="studio-list"></div>
         </div>
@@ -739,20 +877,83 @@ HTML_TEMPLATE = '''
         <div class="section" id="section-emulator">
             <div class="section-header">
                 <div class="section-title emulator"><span class="dot"></span>Emulators <span class="section-count" id="emulator-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('emulator', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('emulator', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('emulator')" title="Close all Emulator processes">⏹ Close All</button>
+                </div>
             </div>
             <div class="process-table" id="emulator-list"></div>
         </div>
 
-        <div class="section" id="section-ide">
+        <div class="section" id="section-cursor">
             <div class="section-header">
-                <div class="section-title ide"><span class="dot"></span>IDEs <span class="section-count" id="ide-section-count">0</span></div>
+                <div class="section-title cursor"><span class="dot"></span>Cursor <span class="section-count" id="cursor-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('cursor', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('cursor', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('cursor')" title="Close all Cursor processes">⏹ Close All</button>
+                </div>
             </div>
-            <div class="process-table" id="ide-list"></div>
+            <div class="process-table" id="cursor-list"></div>
+        </div>
+
+        <div class="section" id="section-windsurf">
+            <div class="section-header">
+                <div class="section-title windsurf"><span class="dot"></span>Windsurf <span class="section-count" id="windsurf-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('windsurf', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('windsurf', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('windsurf')" title="Close all Windsurf processes">⏹ Close All</button>
+                </div>
+            </div>
+            <div class="process-table" id="windsurf-list"></div>
+        </div>
+
+        <div class="section" id="section-vscode">
+            <div class="section-header">
+                <div class="section-title vscode"><span class="dot"></span>VS Code <span class="section-count" id="vscode-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('vscode', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('vscode', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('vscode')" title="Close all VS Code processes">⏹ Close All</button>
+                </div>
+            </div>
+            <div class="process-table" id="vscode-list"></div>
+        </div>
+
+        <div class="section" id="section-ide-other">
+            <div class="section-header">
+                <div class="section-title ide_other"><span class="dot"></span>Other IDEs <span class="section-count" id="ide-other-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('ide_other', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('ide_other', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('ide_other')" title="Close all Other IDE processes">⏹ Close All</button>
+                </div>
+            </div>
+            <div class="process-table" id="ide-other-list"></div>
         </div>
 
         <div class="section" id="section-java">
             <div class="section-header">
                 <div class="section-title java"><span class="dot"></span>Other Java <span class="section-count" id="java-section-count">0</span></div>
+                <div class="section-controls">
+                    <div class="sort-buttons">
+                        <button class="sort-btn" onclick="sortCategory('java', 'memory')" title="Sort by memory">💾</button>
+                        <button class="sort-btn" onclick="sortCategory('java', 'cpu')" title="Sort by CPU">⚡</button>
+                    </div>
+                    <button class="section-close-all" onclick="killCategory('java')" title="Close all Java processes">⏹ Close All</button>
+                </div>
             </div>
             <div class="process-table" id="java-list"></div>
         </div>
@@ -780,6 +981,9 @@ HTML_TEMPLATE = '''
 
         let alerts = new Map();
         let cpuHistory = new Map();  // pid -> array of last N cpu readings
+        let sortState = {};  // category -> { field: 'memory'|'cpu', order: 'asc'|'desc' }
+        let categoryData = {};  // Store original data per category for sorting
+        let statsSortState = { field: null, order: 'desc' };  // Stats row sorting
 
         // Memory leak prevention
         const MAX_ALERTS = 50;
@@ -936,7 +1140,8 @@ HTML_TEMPLATE = '''
             const seenPids = new Set();
 
             // Check individual processes
-            const allProcs = [...data.gradle, ...data.kotlin, ...data.studio, ...data.emulator, ...data.ide, ...data.java];
+            const allProcs = [...data.gradle, ...data.kotlin, ...data.studio, ...data.emulator, 
+                             ...data.cursor, ...data.windsurf, ...data.vscode, ...data.ide_other, ...data.java];
             allProcs.forEach(proc => {
                 seenPids.add(proc.pid);
                 
@@ -981,9 +1186,111 @@ HTML_TEMPLATE = '''
             }
         }
 
+        function sortProcesses(processes, field, order) {
+            const sorted = [...processes];
+            sorted.sort((a, b) => {
+                let valA = a[field];
+                let valB = b[field];
+                if (order === 'desc') {
+                    return valB - valA;  // Descending: high to low
+                } else {
+                    return valA - valB;  // Ascending: low to high
+                }
+            });
+            return sorted;
+        }
+
+        function updateSortButtons(category, field, order) {
+            const section = document.getElementById(`section-${category}`);
+            if (!section) return;
+            
+            const memBtn = section.querySelector('.sort-buttons .sort-btn[onclick*="memory"]');
+            const cpuBtn = section.querySelector('.sort-buttons .sort-btn[onclick*="cpu"]');
+            
+            // Reset all buttons
+            if (memBtn) {
+                memBtn.classList.remove('active', 'asc', 'desc');
+            }
+            if (cpuBtn) {
+                cpuBtn.classList.remove('active', 'asc', 'desc');
+            }
+            
+            // Set active button
+            const activeBtn = field === 'memory' ? memBtn : cpuBtn;
+            if (activeBtn) {
+                activeBtn.classList.add('active', order);
+            }
+        }
+
+        function sortCategory(category, field) {
+            // Toggle order if same field, otherwise default to desc
+            const current = sortState[category];
+            let order = 'desc';
+            
+            if (current && current.field === field) {
+                // Toggle: desc -> asc -> desc
+                order = current.order === 'desc' ? 'asc' : 'desc';
+            }
+            
+            sortState[category] = { field, order };
+            updateSortButtons(category, field, order);
+            
+            // Re-render the category
+            const categoryMap = {
+                'gradle': { list: 'gradle-list', count: 'gradle-section-count', dataKey: 'gradle' },
+                'kotlin': { list: 'kotlin-list', count: 'kotlin-section-count', dataKey: 'kotlin' },
+                'studio': { list: 'studio-list', count: 'studio-section-count', dataKey: 'studio' },
+                'emulator': { list: 'emulator-list', count: 'emulator-section-count', dataKey: 'emulator' },
+                'cursor': { list: 'cursor-list', count: 'cursor-section-count', dataKey: 'cursor' },
+                'windsurf': { list: 'windsurf-list', count: 'windsurf-section-count', dataKey: 'windsurf' },
+                'vscode': { list: 'vscode-list', count: 'vscode-section-count', dataKey: 'vscode' },
+                'ide_other': { list: 'ide-other-list', count: 'ide-other-section-count', dataKey: 'ide_other' },
+                'java': { list: 'java-list', count: 'java-section-count', dataKey: 'java' }
+            };
+            
+            const mapping = categoryMap[category];
+            if (mapping && categoryData[mapping.dataKey]) {
+                const sorted = sortProcesses(categoryData[mapping.dataKey], field, order);
+                renderProcessList(mapping.list, sorted, mapping.count);
+            }
+        }
+
         function renderProcessList(containerId, processes, sectionCountId) {
             const container = document.getElementById(containerId);
             document.getElementById(sectionCountId).textContent = processes.length;
+
+            // Show/hide close all button based on process count
+            // Map container IDs to section IDs
+            const sectionIdMap = {
+                'gradle-list': 'section-gradle',
+                'kotlin-list': 'section-kotlin',
+                'studio-list': 'section-studio',
+                'emulator-list': 'section-emulator',
+                'cursor-list': 'section-cursor',
+                'windsurf-list': 'section-windsurf',
+                'vscode-list': 'section-vscode',
+                'ide-other-list': 'section-ide-other',
+                'java-list': 'section-java'
+            };
+            const sectionId = sectionIdMap[containerId];
+            if (sectionId) {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    const controls = section.querySelector('.section-controls');
+                    const closeAllBtn = section.querySelector('.section-close-all');
+                    const sortButtons = section.querySelector('.sort-buttons');
+                    
+                    if (processes.length > 0) {
+                        if (controls) controls.style.display = 'flex';
+                        if (closeAllBtn) closeAllBtn.style.display = 'block';
+                        if (sortButtons) sortButtons.style.display = 'flex';
+                    } else {
+                        if (controls) controls.style.display = 'none';
+                        if (closeAllBtn) closeAllBtn.style.display = 'none';
+                        if (sortButtons) sortButtons.style.display = 'none';
+                    }
+                }
+            }
 
             if (processes.length === 0) {
                 container.innerHTML = '<div class="empty">No processes</div>';
@@ -1018,7 +1325,16 @@ HTML_TEMPLATE = '''
                 }
                 
                 const heap = proc.heap ? `<span class="heap">${proc.heap}</span>` : '';
-                const meta = `<span class="user">${proc.user}</span> · ${proc.uptime} ${heap}`;
+                let meta = `<span class="user">${proc.user}</span> · ${proc.uptime} ${heap}`;
+                
+                // Add parent process info if available
+                if (proc.parent && proc.parent.cmdline) {
+                    const parentCmdline = proc.parent.cmdline.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const parentDisplay = parentCmdline.length > 30 
+                        ? parentCmdline.substring(0, 27) + '...' 
+                        : parentCmdline;
+                    meta += ` · <span class="parent" title="Started by PID ${proc.parent.pid}: ${parentCmdline}">Started by: ${parentDisplay}</span>`;
+                }
                 
                 html += `
                     <div class="process-row ${rowClass}">
@@ -1044,6 +1360,220 @@ HTML_TEMPLATE = '''
             else if (threshold && value > threshold) el.classList.add('warning');
         }
 
+        function calculateCategoryTotals(data) {
+            const totals = {};
+            const categories = ['gradle', 'kotlin', 'studio', 'emulator', 'cursor', 'windsurf', 'vscode', 'ide_other', 'java'];
+            
+            categories.forEach(cat => {
+                const procs = data[cat] || [];
+                totals[cat] = {
+                    memory: procs.reduce((sum, p) => sum + (p.memory || 0), 0),
+                    cpu: procs.reduce((sum, p) => sum + (p.cpu || 0), 0),
+                    count: procs.length
+                };
+            });
+            
+            // Total is special
+            totals.total = {
+                memory: data.total_memory || 0,
+                cpu: 0,  // Total CPU doesn't make sense
+                count: 0
+            };
+            
+            return totals;
+        }
+
+        function sortStatsBy(field, preserveOrder = false) {
+            // Toggle order if same field and not preserving, otherwise use current or default to desc
+            let order = 'desc';
+            if (preserveOrder && statsSortState.field === field) {
+                // Preserve the existing order (used during refresh)
+                order = statsSortState.order;
+            } else if (statsSortState.field === field) {
+                // Toggle order (user clicked the button)
+                order = statsSortState.order === 'desc' ? 'asc' : 'desc';
+            } else if (statsSortState.field) {
+                // Different field, but we have a previous order - use desc as default
+                order = 'desc';
+            }
+            
+            statsSortState = { field, order };
+            
+            // Update button states
+            const memBtn = document.querySelector('.stats-row-header .sort-btn[onclick*="memory"]');
+            const cpuBtn = document.querySelector('.stats-row-header .sort-btn[onclick*="cpu"]');
+            
+            if (memBtn) memBtn.classList.remove('active', 'asc', 'desc');
+            if (cpuBtn) cpuBtn.classList.remove('active', 'asc', 'desc');
+            
+            const activeBtn = field === 'memory' ? memBtn : cpuBtn;
+            if (activeBtn) {
+                activeBtn.classList.add('active', order);
+            }
+            
+            // Re-sort stats row
+            const statsRow = document.getElementById('stats-row');
+            if (!statsRow) return;
+            
+            // Get all stat cards
+            const cards = Array.from(statsRow.children);
+            
+            // Calculate totals for each category
+            const totals = {};
+            const categoryOrder = [];
+            
+            cards.forEach(card => {
+                const category = card.getAttribute('data-category');
+                if (!category || category === 'total') return;
+                
+                const procs = categoryData[category] || [];
+                totals[category] = {
+                    memory: procs.reduce((sum, p) => sum + (p.memory || 0), 0),
+                    cpu: procs.reduce((sum, p) => sum + (p.cpu || 0), 0),
+                    count: procs.length
+                };
+            });
+            
+            // Total is special - use total_memory
+            totals.total = {
+                memory: categoryData.total_memory || 0,
+                cpu: 0
+            };
+            
+            // Sort cards by their category totals
+            cards.sort((a, b) => {
+                const catA = a.getAttribute('data-category');
+                const catB = b.getAttribute('data-category');
+                
+                if (!catA || !catB) return 0;
+                
+                // Always keep "total" at the end
+                if (catA === 'total') return 1;
+                if (catB === 'total') return -1;
+                
+                const totalA = totals[catA]?.[field] || 0;
+                const totalB = totals[catB]?.[field] || 0;
+                const countA = totals[catA]?.count || 0;
+                const countB = totals[catB]?.count || 0;
+                
+                // Categories with 0 items go to the bottom
+                if (countA === 0 && countB > 0) return 1;
+                if (countB === 0 && countA > 0) return -1;
+                if (countA === 0 && countB === 0) {
+                    // Both empty - maintain original order from sectionIds
+                    const originalOrder = ['gradle', 'kotlin', 'studio', 'emulator', 'cursor', 'windsurf', 'vscode', 'ide_other', 'java'];
+                    const indexA = originalOrder.indexOf(catA);
+                    const indexB = originalOrder.indexOf(catB);
+                    if (indexA === -1 && indexB === -1) return 0;
+                    if (indexA === -1) return 1;
+                    if (indexB === -1) return -1;
+                    return indexA - indexB;
+                }
+                
+                if (order === 'desc') {
+                    return totalB - totalA;
+                } else {
+                    return totalA - totalB;
+                }
+            });
+            
+            // Store the new order (excluding 'total' and empty categories)
+            cards.forEach(card => {
+                const category = card.getAttribute('data-category');
+                if (category && category !== 'total') {
+                    const count = totals[category]?.count || 0;
+                    // Only include categories with items
+                    if (count > 0) {
+                        categoryOrder.push(category);
+                    }
+                }
+            });
+            
+            // Reorder stats row in DOM
+            cards.forEach(card => statsRow.appendChild(card));
+            
+            // Reorder category sections to match stats row order
+            const appStats = document.querySelector('.app-stats');
+            if (!appStats) return;
+            
+            // Get all section elements
+            const sections = {};
+            const sectionIds = ['gradle', 'kotlin', 'studio', 'emulator', 'cursor', 'windsurf', 'vscode', 'ide_other', 'java'];
+            sectionIds.forEach(id => {
+                // Convert underscore to hyphen for section ID lookup
+                const sectionId = id === 'ide_other' ? 'ide-other' : id;
+                const section = document.getElementById(`section-${sectionId}`);
+                if (section) {
+                    sections[id] = section;
+                }
+            });
+            
+            // Find where to insert (after app-stats, before actions)
+            const actions = document.querySelector('.actions');
+            const insertBefore = actions || document.querySelector('.footer');
+            
+            // Separate categories into those with items and those without
+            const categoriesWithItems = [];
+            const categoriesWithoutItems = [];
+            
+            sectionIds.forEach(id => {
+                const procs = categoryData[id] || [];
+                const section = sections[id];
+                if (section) {
+                    if (procs.length > 0) {
+                        categoriesWithItems.push(id);
+                    } else {
+                        categoriesWithoutItems.push(id);
+                    }
+                }
+            });
+            
+            // Sort empty categories - maintain original order
+            categoriesWithoutItems.sort((a, b) => {
+                // For empty categories, maintain original order
+                const originalOrder = ['gradle', 'kotlin', 'studio', 'emulator', 'cursor', 'windsurf', 'vscode', 'ide_other', 'java'];
+                const indexA = originalOrder.indexOf(a);
+                const indexB = originalOrder.indexOf(b);
+                if (indexA === -1 && indexB === -1) return 0;
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+            });
+            
+            // Use sorted order for categories with items, or original order if not sorted
+            const orderedCategories = categoryOrder.length > 0 
+                ? categoryOrder 
+                : categoriesWithItems; // If no sort, use original order for non-empty
+            
+            // Reorder sections: first non-empty (sorted or original order), then empty at the end
+            const allOrderedCategories = [...orderedCategories, ...categoriesWithoutItems];
+            
+            // Collect all sections first, then reorder them all at once
+            const sectionsToReorder = [];
+            allOrderedCategories.forEach(category => {
+                const section = sections[category];
+                if (section) {
+                    sectionsToReorder.push(section);
+                }
+            });
+            
+            // Remove all sections from DOM first
+            sectionsToReorder.forEach(section => {
+                if (section && section.parentNode) {
+                    section.parentNode.removeChild(section);
+                }
+            });
+            
+            // Insert them all in the correct order
+            sectionsToReorder.forEach((section, index) => {
+                if (section && insertBefore && insertBefore.parentNode) {
+                    insertBefore.parentNode.insertBefore(section, insertBefore);
+                } else if (section && appStats) {
+                    appStats.parentNode.insertBefore(section, appStats.nextSibling);
+                }
+            });
+        }
+
         async function refresh() {
             try {
                 const response = await fetch('/api/status');
@@ -1054,7 +1584,10 @@ HTML_TEMPLATE = '''
                 document.getElementById('kotlin-count').textContent = data.kotlin.length;
                 document.getElementById('studio-count').textContent = data.studio.length;
                 document.getElementById('emulator-count').textContent = data.emulator.length;
-                document.getElementById('ide-count').textContent = data.ide.length;
+                document.getElementById('cursor-count').textContent = data.cursor.length;
+                document.getElementById('windsurf-count').textContent = data.windsurf.length;
+                document.getElementById('vscode-count').textContent = data.vscode.length;
+                document.getElementById('ide-other-count').textContent = data.ide_other.length;
                 document.getElementById('java-count').textContent = data.java.length;
                 document.getElementById('total-memory').textContent = formatBytes(data.total_memory);
                 document.getElementById('last-updated').textContent = new Date().toLocaleTimeString();
@@ -1071,13 +1604,118 @@ HTML_TEMPLATE = '''
                 // Update stat card warnings
                 updateStatCard('stat-memory', data.total_memory, THRESHOLDS.TOTAL_MEM_WARNING);
 
-                // Render process lists
-                renderProcessList('gradle-list', data.gradle, 'gradle-section-count');
-                renderProcessList('kotlin-list', data.kotlin, 'kotlin-section-count');
-                renderProcessList('studio-list', data.studio, 'studio-section-count');
-                renderProcessList('emulator-list', data.emulator, 'emulator-section-count');
-                renderProcessList('ide-list', data.ide, 'ide-section-count');
-                renderProcessList('java-list', data.java, 'java-section-count');
+                // Store original data for sorting
+                categoryData = {
+                    gradle: data.gradle,
+                    kotlin: data.kotlin,
+                    studio: data.studio,
+                    emulator: data.emulator,
+                    cursor: data.cursor,
+                    windsurf: data.windsurf,
+                    vscode: data.vscode,
+                    ide_other: data.ide_other,
+                    java: data.java,
+                    total_memory: data.total_memory
+                };
+                
+                // Always ensure empty categories are at the bottom, even without sorting
+                const appStats = document.querySelector('.app-stats');
+                const actions = document.querySelector('.actions');
+                const insertBefore = actions || document.querySelector('.footer');
+                
+                if (appStats) {
+                    const sectionIds = ['gradle', 'kotlin', 'studio', 'emulator', 'cursor', 'windsurf', 'vscode', 'ide_other', 'java'];
+                    const categoriesWithItems = [];
+                    const categoriesWithoutItems = [];
+                    
+                    sectionIds.forEach(id => {
+                        const procs = categoryData[id] || [];
+                        const section = document.getElementById(`section-${id}`);
+                        if (section) {
+                            if (procs.length > 0) {
+                                categoriesWithItems.push(id);
+                            } else {
+                                categoriesWithoutItems.push(id);
+                            }
+                        }
+                    });
+                    
+                    // Sort empty categories - maintain original order
+                    categoriesWithoutItems.sort((a, b) => {
+                        // For empty categories, maintain original order
+                        const originalOrder = ['gradle', 'kotlin', 'studio', 'emulator', 'cursor', 'windsurf', 'vscode', 'ide_other', 'java'];
+                        const indexA = originalOrder.indexOf(a);
+                        const indexB = originalOrder.indexOf(b);
+                        if (indexA === -1 && indexB === -1) return 0;
+                        if (indexA === -1) return 1;
+                        if (indexB === -1) return -1;
+                        return indexA - indexB;
+                    });
+                    
+                    // Apply stats row sorting if active
+                    if (statsSortState.field) {
+                        // Re-apply the current sort state to maintain order during refresh
+                        sortStatsBy(statsSortState.field, true);
+                    } else {
+                        // No sort active - maintain original order for ALL categories
+                        // Use the original sectionIds order, not separating by items/empty
+                        const allOrderedCategories = sectionIds.filter(id => {
+                            // Convert underscore to hyphen for section ID lookup
+                            const sectionId = id === 'ide_other' ? 'ide-other' : id;
+                            const section = document.getElementById(`section-${sectionId}`);
+                            return section !== null;
+                        });
+                        
+                        // Collect all sections first, then reorder them all at once
+                        const sectionsToReorder = [];
+                        allOrderedCategories.forEach(category => {
+                            // Convert underscore to hyphen for section ID lookup
+                            const sectionId = category === 'ide_other' ? 'ide-other' : category;
+                            const section = document.getElementById(`section-${sectionId}`);
+                            if (section) {
+                                sectionsToReorder.push(section);
+                            }
+                        });
+                        
+                        // Remove all sections from DOM first (in reverse order to avoid issues)
+                        sectionsToReorder.reverse().forEach(section => {
+                            if (section && section.parentNode) {
+                                section.parentNode.removeChild(section);
+                            }
+                        });
+                        
+                        // Insert them all in the correct order (reverse back)
+                        sectionsToReorder.reverse().forEach((section) => {
+                            if (section && insertBefore && insertBefore.parentNode) {
+                                insertBefore.parentNode.insertBefore(section, insertBefore);
+                            } else if (section && appStats && appStats.parentNode) {
+                                appStats.parentNode.insertBefore(section, appStats.nextSibling);
+                            }
+                        });
+                    }
+                }
+                
+                // Apply sorting if active, otherwise use original order
+                const applySort = (category, processes, listId, countId) => {
+                    const sort = sortState[category];
+                    if (sort) {
+                        const sorted = sortProcesses(processes, sort.field, sort.order);
+                        renderProcessList(listId, sorted, countId);
+                    } else {
+                        renderProcessList(listId, processes, countId);
+                    }
+                };
+                
+                // Render process lists with sorting
+                applySort('gradle', data.gradle, 'gradle-list', 'gradle-section-count');
+                applySort('kotlin', data.kotlin, 'kotlin-list', 'kotlin-section-count');
+                applySort('studio', data.studio, 'studio-list', 'studio-section-count');
+                applySort('emulator', data.emulator, 'emulator-list', 'emulator-section-count');
+                applySort('cursor', data.cursor, 'cursor-list', 'cursor-section-count');
+                applySort('windsurf', data.windsurf, 'windsurf-list', 'windsurf-section-count');
+                applySort('vscode', data.vscode, 'vscode-list', 'vscode-section-count');
+                applySort('ide_other', data.ide_other, 'ide-other-list', 'ide-other-section-count');
+                applySort('java', data.java, 'java-list', 'java-section-count');
 
             } catch (err) {
                 console.error('Failed to fetch status:', err);
@@ -1103,6 +1741,37 @@ HTML_TEMPLATE = '''
                 setTimeout(refresh, 1000);
             } catch (err) {
                 console.error('Failed:', err);
+            }
+        }
+
+        async function killCategory(category) {
+            const categoryNames = {
+                'gradle': 'Gradle',
+                'kotlin': 'Kotlin',
+                'studio': 'Android Studio',
+                'emulator': 'Emulator',
+                'cursor': 'Cursor',
+                'windsurf': 'Windsurf',
+                'vscode': 'VS Code',
+                'ide_other': 'Other IDEs',
+                'java': 'Java'
+            };
+            const name = categoryNames[category] || category;
+            if (!confirm(`Kill all ${name} processes?`)) return;
+            try {
+                const res = await fetch(`/api/kill-category/${category}`, { method: 'POST' });
+                const result = await res.json();
+                if (result.success) {
+                    console.log(`Killed ${result.killed} of ${result.total} processes`);
+                    if (result.errors && result.errors.length > 0) {
+                        console.warn('Some errors:', result.errors);
+                    }
+                } else {
+                    alert('Failed: ' + (result.error || 'Unknown'));
+                }
+                setTimeout(refresh, 500);
+            } catch (err) {
+                alert('Failed to kill processes: ' + err.message);
             }
         }
 
@@ -1203,19 +1872,41 @@ def get_all_processes():
         'kotlin': [], 
         'studio': [],
         'emulator': [],
-        'ide': [],
+        'cursor': [],
+        'windsurf': [],
+        'vscode': [],
+        'ide_other': [],
         'java': []
     }
     
     try:
         for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'username', 'cpu_percent', 
-                                          'memory_info', 'create_time', 'cwd']):
+                                          'memory_info', 'create_time', 'cwd', 'ppid']):
             try:
                 pinfo = proc.info
                 proc_name = pinfo['name'] or ''
                 cmdline = ' '.join(pinfo['cmdline'] or [])
                 cmdline_lower = cmdline.lower()
                 proc_name_lower = proc_name.lower()
+                
+                # Get parent process information
+                parent_info = None
+                try:
+                    ppid = pinfo.get('ppid')
+                    if ppid:
+                        parent_proc = psutil.Process(ppid)
+                        parent_name = parent_proc.name()
+                        parent_cmdline = ' '.join(parent_proc.cmdline()[:2]) if parent_proc.cmdline() else parent_name
+                        # Simplify parent name - show first part of command or process name
+                        if len(parent_cmdline) > 50:
+                            parent_cmdline = parent_cmdline[:47] + '...'
+                        parent_info = {
+                            'pid': ppid,
+                            'name': parent_name,
+                            'cmdline': parent_cmdline
+                        }
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    parent_info = None
                 
                 # Check if it's a relevant process
                 is_java = 'java' in cmdline_lower
@@ -1232,27 +1923,65 @@ def get_all_processes():
                               'Android Emulator' in cmdline)
                 is_adb = 'adb' in proc_name_lower and 'server' in cmdline_lower
                 
-                # IDE detection
-                is_ide = ('cursor' in proc_name_lower or
-                         'Cursor.app' in cmdline or
-                         'code' in proc_name_lower or  # VS Code
-                         'Code.app' in cmdline or
-                         'Visual Studio Code' in cmdline or
-                         'windsurf' in proc_name_lower or
-                         'Windsurf.app' in cmdline or
-                         'trae' in proc_name_lower or
-                         'Trae.app' in cmdline or
-                         'antigravity' in proc_name_lower or
-                         'zed' in proc_name_lower or
-                         'Zed.app' in cmdline or
-                         'fleet' in proc_name_lower or
-                         'Fleet.app' in cmdline or
-                         'sublime' in proc_name_lower or
-                         'Sublime' in cmdline or
-                         'atom' in proc_name_lower or
-                         'notepad++' in proc_name_lower or
-                         'neovim' in proc_name_lower or
-                         'nvim' in proc_name_lower)
+                # IDE detection - check process name, command line, path, and parent process
+                # First check if this process itself is an IDE
+                is_ide_direct = (
+                    # Cursor detection - check name, cmdline, path, and helper processes
+                    'cursor' in proc_name_lower or
+                    'Cursor.app' in cmdline or
+                    '/Applications/Cursor.app' in cmdline or
+                    'Cursor Helper' in cmdline or
+                    'cursor helper' in proc_name_lower or
+                    # VS Code detection
+                    ('code' in proc_name_lower and not any(x in cmdline_lower for x in ['gradle', 'kotlin', 'java'])) or
+                    'Code.app' in cmdline or
+                    '/Applications/Visual Studio Code.app' in cmdline or
+                    'Visual Studio Code' in cmdline or
+                    'Code Helper' in cmdline or
+                    # Windsurf detection
+                    'windsurf' in proc_name_lower or
+                    'Windsurf.app' in cmdline or
+                    '/Applications/Windsurf.app' in cmdline or
+                    'Windsurf Helper' in cmdline or
+                    # Other IDEs
+                    'trae' in proc_name_lower or
+                    'Trae.app' in cmdline or
+                    'antigravity' in proc_name_lower or
+                    'zed' in proc_name_lower or
+                    'Zed.app' in cmdline or
+                    '/Applications/Zed.app' in cmdline or
+                    'Zed Helper' in cmdline or
+                    'fleet' in proc_name_lower or
+                    'Fleet.app' in cmdline or
+                    'sublime' in proc_name_lower or
+                    'Sublime' in cmdline or
+                    'atom' in proc_name_lower or
+                    'notepad++' in proc_name_lower or
+                    'neovim' in proc_name_lower or
+                    'nvim' in proc_name_lower
+                )
+                
+                # Check if parent is an IDE (to catch helper processes, renderers, etc.)
+                is_child_of_ide = False
+                try:
+                    ppid = pinfo.get('ppid')
+                    if ppid:
+                        parent_proc = psutil.Process(ppid)
+                        parent_name = parent_proc.name().lower()
+                        parent_cmdline_full = ' '.join(parent_proc.cmdline() or [])
+                        parent_cmdline_lower = parent_cmdline_full.lower()
+                        
+                        is_child_of_ide = (
+                            'cursor' in parent_name or 'Cursor.app' in parent_cmdline_full or
+                            'code' in parent_name or 'Code.app' in parent_cmdline_full or
+                            'windsurf' in parent_name or 'Windsurf.app' in parent_cmdline_full or
+                            'zed' in parent_name or 'Zed.app' in parent_cmdline_full or
+                            'fleet' in parent_name or 'Fleet.app' in parent_cmdline_full
+                        )
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+                
+                is_ide = is_ide_direct or is_child_of_ide
                 
                 if not any([is_java, is_kotlin, is_gradle, is_studio, is_emulator, is_adb, is_ide]):
                     continue
@@ -1331,28 +2060,140 @@ def get_all_processes():
                     category = 'studio'
                     name = 'Studio Browser Helper'
                 elif is_ide:
-                    category = 'ide'
-                    # Detect specific IDE
-                    if 'cursor' in proc_name_lower or 'Cursor' in cmdline:
-                        name = 'Cursor'
-                    elif 'windsurf' in proc_name_lower or 'Windsurf' in cmdline:
+                    # Detect specific IDE and assign to separate categories
+                    # Check parent first to catch child processes
+                    is_cursor_child = False
+                    is_vscode_child = False
+                    is_windsurf_child = False
+                    try:
+                        ppid = pinfo.get('ppid')
+                        if ppid:
+                            parent_proc = psutil.Process(ppid)
+                            parent_name = parent_proc.name().lower()
+                            parent_cmdline_full = ' '.join(parent_proc.cmdline() or [])
+                            is_cursor_child = 'cursor' in parent_name or 'Cursor.app' in parent_cmdline_full
+                            is_vscode_child = ('code' in parent_name and 'code' not in parent_cmdline_full.lower().replace(parent_name, '')) or 'Code.app' in parent_cmdline_full
+                            is_windsurf_child = 'windsurf' in parent_name or 'Windsurf.app' in parent_cmdline_full
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                        pass
+                    
+                    if 'cursor' in proc_name_lower or 'Cursor' in cmdline or is_cursor_child:
+                        category = 'cursor'
+                        # Detect specific Cursor process types
+                        # If it's a child process but doesn't have cursor in name, try to identify type
+                        if is_cursor_child and 'cursor' not in proc_name_lower and 'Cursor' not in cmdline:
+                            # This is likely a helper/renderer process spawned by Cursor
+                            if '--type=renderer' in cmdline:
+                                if '--window-id=' in cmdline:
+                                    window_match = re.search(r'--window-id=(\d+)', cmdline)
+                                    if window_match:
+                                        name = f'Cursor Renderer (Window {window_match.group(1)})'
+                                    else:
+                                        name = 'Cursor Renderer'
+                                else:
+                                    name = 'Cursor Renderer'
+                            elif '--type=utility' in cmdline or '--utility-sub-type=' in cmdline:
+                                if '--utility-sub-type=network.mojom.NetworkService' in cmdline:
+                                    name = 'Cursor Network Service'
+                                elif '--utility-sub-type=storage.mojom.StorageService' in cmdline:
+                                    name = 'Cursor Storage Service'
+                                elif 'gpu' in cmdline_lower or '--utility-sub-type=gpu' in cmdline:
+                                    name = 'Cursor GPU Process'
+                                else:
+                                    name = 'Cursor Helper'
+                            elif 'Helper' in proc_name or 'helper' in proc_name_lower:
+                                name = 'Cursor Helper'
+                            else:
+                                name = 'Cursor Process'
+                        elif '--type=renderer' in cmdline:
+                            # Try to extract window/tab info from command line
+                            if '--window-id=' in cmdline:
+                                window_match = re.search(r'--window-id=(\d+)', cmdline)
+                                if window_match:
+                                    name = f'Cursor Renderer (Window {window_match.group(1)})'
+                                else:
+                                    name = 'Cursor Renderer'
+                            else:
+                                name = 'Cursor Renderer'
+                        elif '--type=utility' in cmdline or '--utility-sub-type=' in cmdline:
+                            # Check for specific utility types
+                            if '--utility-sub-type=network.mojom.NetworkService' in cmdline:
+                                name = 'Cursor Network Service'
+                            elif '--utility-sub-type=storage.mojom.StorageService' in cmdline:
+                                name = 'Cursor Storage Service'
+                            elif 'gpu' in cmdline_lower or '--utility-sub-type=gpu' in cmdline:
+                                name = 'Cursor GPU Process'
+                            else:
+                                name = 'Cursor Utility'
+                        elif '--type=zygote' in cmdline:
+                            name = 'Cursor Zygote'
+                        elif '--extension-host' in cmdline or 'extensionHost' in cmdline_lower:
+                            name = 'Cursor Extension Host'
+                        elif '--type=plugin' in cmdline:
+                            name = 'Cursor Plugin Host'
+                        elif '--crashpad-handler' in cmdline:
+                            name = 'Cursor Crash Handler'
+                        elif 'Cursor.app' in cmdline or 'cursor' == proc_name_lower:
+                            # Main process - check if it's the main entry point
+                            if '--no-sandbox' in cmdline or '--disable-gpu' in cmdline or len([a for a in cmdline.split() if a.startswith('--')]) < 3:
+                                name = 'Cursor (Main)'
+                            else:
+                                name = 'Cursor'
+                        else:
+                            name = 'Cursor'
+                    elif ('windsurf' in proc_name_lower or 'Windsurf' in cmdline) and not is_cursor_child and not is_vscode_child:
+                        category = 'windsurf'
                         name = 'Windsurf'
-                    elif 'code' in proc_name_lower or 'Code.app' in cmdline or 'Visual Studio Code' in cmdline:
-                        name = 'VS Code'
-                    elif 'trae' in proc_name_lower or 'Trae' in cmdline:
-                        name = 'Trae'
-                    elif 'antigravity' in proc_name_lower:
-                        name = 'Antigravity'
-                    elif 'zed' in proc_name_lower or 'Zed' in cmdline:
-                        name = 'Zed'
-                    elif 'fleet' in proc_name_lower or 'Fleet' in cmdline:
-                        name = 'Fleet'
-                    elif 'sublime' in proc_name_lower or 'Sublime' in cmdline:
-                        name = 'Sublime Text'
-                    elif 'nvim' in proc_name_lower or 'neovim' in proc_name_lower:
-                        name = 'Neovim'
+                    elif ('code' in proc_name_lower or 'Code.app' in cmdline or 'Visual Studio Code' in cmdline) and not is_cursor_child:
+                        category = 'vscode'
+                        # Detect specific VS Code process types
+                        if '--type=renderer' in cmdline:
+                            if '--window-id=' in cmdline:
+                                window_match = re.search(r'--window-id=(\d+)', cmdline)
+                                if window_match:
+                                    name = f'VS Code Renderer (Window {window_match.group(1)})'
+                                else:
+                                    name = 'VS Code Renderer'
+                            else:
+                                name = 'VS Code Renderer'
+                        elif '--type=utility' in cmdline or '--utility-sub-type=' in cmdline:
+                            if '--utility-sub-type=network.mojom.NetworkService' in cmdline:
+                                name = 'VS Code Network Service'
+                            elif '--utility-sub-type=storage.mojom.StorageService' in cmdline:
+                                name = 'VS Code Storage Service'
+                            elif 'gpu' in cmdline_lower or '--utility-sub-type=gpu' in cmdline:
+                                name = 'VS Code GPU Process'
+                            else:
+                                name = 'VS Code Utility'
+                        elif '--type=zygote' in cmdline:
+                            name = 'VS Code Zygote'
+                        elif '--extension-host' in cmdline or 'extensionHost' in cmdline_lower:
+                            name = 'VS Code Extension Host'
+                        elif '--type=plugin' in cmdline:
+                            name = 'VS Code Plugin Host'
+                        elif '--crashpad-handler' in cmdline:
+                            name = 'VS Code Crash Handler'
+                        elif 'Code.app' in cmdline or 'code' == proc_name_lower:
+                            name = 'VS Code (Main)'
+                        else:
+                            name = 'VS Code'
                     else:
-                        name = 'IDE'
+                        category = 'ide_other'
+                        # Detect other IDEs
+                        if 'trae' in proc_name_lower or 'Trae' in cmdline:
+                            name = 'Trae'
+                        elif 'antigravity' in proc_name_lower:
+                            name = 'Antigravity'
+                        elif 'zed' in proc_name_lower or 'Zed' in cmdline:
+                            name = 'Zed'
+                        elif 'fleet' in proc_name_lower or 'Fleet' in cmdline:
+                            name = 'Fleet'
+                        elif 'sublime' in proc_name_lower or 'Sublime' in cmdline:
+                            name = 'Sublime Text'
+                        elif 'nvim' in proc_name_lower or 'neovim' in proc_name_lower:
+                            name = 'Neovim'
+                        else:
+                            name = 'IDE'
                 elif is_gradle and not is_kotlin:
                     category = 'gradle'
                     name = 'Gradle Process'
@@ -1368,7 +2209,8 @@ def get_all_processes():
                     'user': username,
                     'uptime': uptime,
                     'cwd': cwd,
-                    'heap': heap_size
+                    'heap': heap_size,
+                    'parent': parent_info
                 }
                 
                 processes[category].append(proc_info)
@@ -1417,7 +2259,9 @@ def status():
     
     all_procs = (processes['gradle'] + processes['kotlin'] + 
                  processes['studio'] + processes['emulator'] + 
-                 processes['ide'] + processes['java'])
+                 processes['cursor'] + processes['windsurf'] + 
+                 processes['vscode'] + processes['ide_other'] + 
+                 processes['java'])
     total_memory = sum(p['memory'] for p in all_procs)
     
     return jsonify({
@@ -1425,7 +2269,10 @@ def status():
         'kotlin': processes['kotlin'],
         'studio': processes['studio'],
         'emulator': processes['emulator'],
-        'ide': processes['ide'],
+        'cursor': processes['cursor'],
+        'windsurf': processes['windsurf'],
+        'vscode': processes['vscode'],
+        'ide_other': processes['ide_other'],
         'java': processes['java'],
         'total_memory': total_memory,
         'app': app_stats,
@@ -1467,6 +2314,43 @@ def stop_daemons():
         return jsonify({'success': False, 'error': str(e)})
     
     return jsonify({'success': False, 'error': 'Gradle not found'})
+
+
+@app.route('/api/kill-category/<category>', methods=['POST'])
+def kill_category(category):
+    """Kill all processes in a specific category."""
+    import signal
+    import os
+    
+    valid_categories = ['gradle', 'kotlin', 'studio', 'emulator', 'cursor', 'windsurf', 'vscode', 'ide_other', 'java']
+    if category not in valid_categories:
+        return jsonify({'success': False, 'error': 'Invalid category'}), 400
+    
+    processes = get_all_processes()
+    category_procs = processes.get(category, [])
+    
+    if not category_procs:
+        return jsonify({'success': True, 'killed': 0, 'message': 'No processes in this category'})
+    
+    killed = 0
+    errors = []
+    
+    for proc in category_procs:
+        try:
+            os.kill(proc['pid'], signal.SIGTERM)
+            killed += 1
+        except ProcessLookupError:
+            pass  # Process already gone
+        except PermissionError:
+            errors.append(f"Permission denied for PID {proc['pid']}")
+        except Exception as e:
+            errors.append(f"Error killing PID {proc['pid']}: {str(e)}")
+    
+    result = {'success': True, 'killed': killed, 'total': len(category_procs)}
+    if errors:
+        result['errors'] = errors
+    
+    return jsonify(result)
 
 
 @app.route('/api/config', methods=['GET'])
