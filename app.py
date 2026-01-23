@@ -9,6 +9,10 @@ import json
 import shutil
 import socket
 import psutil
+import hashlib
+import time
+import urllib.request
+import urllib.error
 from datetime import datetime
 from flask import Flask, jsonify, render_template_string, request
 from pathlib import Path
@@ -299,6 +303,157 @@ HTML_TEMPLATE = '''
             font-weight: 600;
         }
         .btn-primary:hover { opacity: 0.9; }
+
+        /* Update Banner */
+        .update-banner {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            border: 1px solid var(--accent-blue);
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            padding: 0.75rem 1rem;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            color: white;
+            font-size: 12px;
+        }
+        .update-banner.show { display: flex; }
+        .update-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+        }
+        .update-banner-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .update-banner-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+        .update-banner-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        .update-banner-btn.primary {
+            background: white;
+            color: var(--accent-blue);
+            border-color: white;
+        }
+        .update-banner-btn.primary:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Update Dialog */
+        .update-dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            backdrop-filter: blur(4px);
+        }
+        .update-dialog-overlay.show { display: flex; }
+        .update-dialog {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 480px;
+            max-width: 90vw;
+            max-height: 80vh;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+        }
+        .update-dialog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+        }
+        .update-dialog-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        .update-dialog-close:hover { color: var(--text-primary); }
+        .update-dialog-body {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .update-dialog-body .version-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .update-dialog-body .changelog {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 12px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            margin-bottom: 12px;
+        }
+        .update-progress {
+            display: none;
+            margin-top: 12px;
+        }
+        .update-progress.show { display: block; }
+        .update-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .update-progress-fill {
+            height: 100%;
+            background: var(--accent-cyan);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .update-progress-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+        .update-dialog-footer {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            border-top: 1px solid var(--border);
+            justify-content: flex-end;
+        }
 
         /* Alerts */
         .alerts-container {
@@ -714,6 +869,19 @@ HTML_TEMPLATE = '''
             </div>
         </header>
         
+        <!-- Update Banner -->
+        <div class="update-banner" id="update-banner">
+            <div class="update-banner-content">
+                <span>🔄</span>
+                <span>Update available: <strong id="update-latest-version">-</strong> (you have <strong id="update-current-version">-</strong>)</span>
+            </div>
+            <div class="update-banner-actions">
+                <button class="update-banner-btn primary" onclick="showUpdateDialog()">Update Now</button>
+                <button class="update-banner-btn" onclick="dismissUpdateNotification()">Later</button>
+                <button class="update-banner-btn" onclick="dismissUpdateNotification(true)">×</button>
+            </div>
+        </div>
+        
         <!-- Port Change Dialog -->
         <div id="port-dialog" class="port-dialog-overlay" style="display: none;">
             <div class="port-dialog">
@@ -732,6 +900,34 @@ HTML_TEMPLATE = '''
                 <div class="port-dialog-footer" id="port-dialog-buttons">
                     <button class="btn btn-secondary" onclick="hidePortDialog()">Cancel</button>
                     <button class="btn btn-primary" onclick="changePort()">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Update Dialog -->
+        <div id="update-dialog" class="update-dialog-overlay">
+            <div class="update-dialog">
+                <div class="update-dialog-header">
+                    <span>🔄 Update Gradik</span>
+                    <button class="update-dialog-close" onclick="hideUpdateDialog()">×</button>
+                </div>
+                <div class="update-dialog-body">
+                    <div class="version-info">
+                        <span>Current: <strong id="update-dialog-current">-</strong></span>
+                        <span>→</span>
+                        <span>Latest: <strong id="update-dialog-latest">-</strong></span>
+                    </div>
+                    <div class="changelog" id="update-changelog">Loading changelog...</div>
+                    <div class="update-progress" id="update-progress">
+                        <div class="update-progress-bar">
+                            <div class="update-progress-fill" id="update-progress-fill"></div>
+                        </div>
+                        <div class="update-progress-text" id="update-progress-text">Preparing update...</div>
+                    </div>
+                </div>
+                <div class="update-dialog-footer">
+                    <button class="btn btn-secondary" onclick="hideUpdateDialog()" id="update-cancel-btn">Cancel</button>
+                    <button class="btn btn-primary" onclick="installUpdate()" id="update-install-btn">Install Update</button>
                 </div>
             </div>
         </div>
@@ -1775,6 +1971,237 @@ HTML_TEMPLATE = '''
             }
         }
 
+        // Update system
+        let updateInfo = null;
+        let updateCheckInterval = null;
+        const UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+        
+        async function checkForUpdates(showNotification = true) {
+            try {
+                const response = await fetch('/api/update/check');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.log('[Update] Check failed:', data.error);
+                    return;
+                }
+                
+                if (data.available) {
+                    updateInfo = data;
+                    if (showNotification && !isUpdateDismissed()) {
+                        showUpdateNotification(data);
+                    }
+                } else {
+                    updateInfo = null;
+                    hideUpdateNotification();
+                }
+            } catch (err) {
+                console.error('[Update] Check error:', err);
+            }
+        }
+        
+        function showUpdateNotification(info) {
+            const banner = document.getElementById('update-banner');
+            const currentVersion = document.getElementById('update-current-version');
+            const latestVersion = document.getElementById('update-latest-version');
+            
+            if (banner && currentVersion && latestVersion) {
+                currentVersion.textContent = `v${info.current_version}`;
+                latestVersion.textContent = `v${info.latest_version}`;
+                banner.classList.add('show');
+            }
+        }
+        
+        function hideUpdateNotification() {
+            const banner = document.getElementById('update-banner');
+            if (banner) {
+                banner.classList.remove('show');
+            }
+        }
+        
+        function dismissUpdateNotification(permanent = false) {
+            hideUpdateNotification();
+            if (permanent) {
+                // Store dismissal in localStorage (24 hours)
+                localStorage.setItem('update_dismissed', Date.now().toString());
+            }
+        }
+        
+        function isUpdateDismissed() {
+            const dismissed = localStorage.getItem('update_dismissed');
+            if (!dismissed) return false;
+            const dismissedTime = parseInt(dismissed);
+            const hoursSinceDismissal = (Date.now() - dismissedTime) / (1000 * 60 * 60);
+            // Auto-show again after 24 hours
+            if (hoursSinceDismissal > 24) {
+                localStorage.removeItem('update_dismissed');
+                return false;
+            }
+            return true;
+        }
+        
+        function showUpdateDialog() {
+            if (!updateInfo) {
+                checkForUpdates(false).then(() => {
+                    if (updateInfo) {
+                        displayUpdateDialog();
+                    }
+                });
+                return;
+            }
+            displayUpdateDialog();
+        }
+        
+        function displayUpdateDialog() {
+            const dialog = document.getElementById('update-dialog');
+            const currentEl = document.getElementById('update-dialog-current');
+            const latestEl = document.getElementById('update-dialog-latest');
+            const changelogEl = document.getElementById('update-changelog');
+            
+            if (dialog && updateInfo) {
+                currentEl.textContent = `v${updateInfo.current_version}`;
+                latestEl.textContent = `v${updateInfo.latest_version}`;
+                changelogEl.textContent = updateInfo.changelog || 'No changelog available.';
+                dialog.classList.add('show');
+                hideUpdateNotification();
+            }
+        }
+        
+        function hideUpdateDialog() {
+            const dialog = document.getElementById('update-dialog');
+            const progress = document.getElementById('update-progress');
+            const progressFill = document.getElementById('update-progress-fill');
+            const progressText = document.getElementById('update-progress-text');
+            const installBtn = document.getElementById('update-install-btn');
+            const cancelBtn = document.getElementById('update-cancel-btn');
+            
+            if (dialog) {
+                dialog.classList.remove('show');
+            }
+            if (progress) {
+                progress.classList.remove('show');
+            }
+            if (progressFill) {
+                progressFill.style.width = '0%';
+            }
+            if (progressText) {
+                progressText.textContent = 'Preparing update...';
+            }
+            if (installBtn) {
+                installBtn.disabled = false;
+                installBtn.textContent = 'Install Update';
+            }
+            if (cancelBtn) {
+                cancelBtn.disabled = false;
+            }
+        }
+        
+        async function installUpdate() {
+            if (!updateInfo) {
+                alert('No update information available');
+                return;
+            }
+            
+            const installBtn = document.getElementById('update-install-btn');
+            const cancelBtn = document.getElementById('update-cancel-btn');
+            const progress = document.getElementById('update-progress');
+            const progressFill = document.getElementById('update-progress-fill');
+            const progressText = document.getElementById('update-progress-text');
+            
+            if (!confirm(`Install update to v${updateInfo.latest_version}? The app will restart automatically.`)) {
+                return;
+            }
+            
+            // Disable buttons and show progress
+            if (installBtn) {
+                installBtn.disabled = true;
+                installBtn.textContent = 'Installing...';
+            }
+            if (cancelBtn) {
+                cancelBtn.disabled = true;
+            }
+            if (progress) {
+                progress.classList.add('show');
+            }
+            if (progressFill) {
+                progressFill.style.width = '10%';
+            }
+            if (progressText) {
+                progressText.textContent = 'Downloading update...';
+            }
+            
+            try {
+                // Simulate progress (actual download happens server-side)
+                let progressPercent = 10;
+                const progressInterval = setInterval(() => {
+                    progressPercent = Math.min(progressPercent + 5, 90);
+                    if (progressFill) {
+                        progressFill.style.width = progressPercent + '%';
+                    }
+                }, 500);
+                
+                const response = await fetch('/api/update/install', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ version: updateInfo.latest_version })
+                });
+                
+                clearInterval(progressInterval);
+                
+                if (progressFill) {
+                    progressFill.style.width = '100%';
+                }
+                if (progressText) {
+                    progressText.textContent = 'Installing...';
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (progressText) {
+                        progressText.textContent = 'Update installed! Reloading page...';
+                    }
+                    // Reload page after 2 seconds
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    if (progress) {
+                        progress.classList.remove('show');
+                    }
+                    if (installBtn) {
+                        installBtn.disabled = false;
+                        installBtn.textContent = 'Install Update';
+                    }
+                    if (cancelBtn) {
+                        cancelBtn.disabled = false;
+                    }
+                    alert('Update failed: ' + (result.error || 'Unknown error'));
+                }
+            } catch (err) {
+                if (progress) {
+                    progress.classList.remove('show');
+                }
+                if (installBtn) {
+                    installBtn.disabled = false;
+                    installBtn.textContent = 'Install Update';
+                }
+                if (cancelBtn) {
+                    cancelBtn.disabled = false;
+                }
+                alert('Update failed: ' + err.message);
+            }
+        }
+        
+        // Check for updates on page load (after 1 hour delay) and periodically
+        setTimeout(() => {
+            checkForUpdates();
+            // Check every 6 hours
+            updateCheckInterval = setInterval(() => {
+                checkForUpdates();
+            }, UPDATE_CHECK_INTERVAL);
+        }, 60 * 60 * 1000); // 1 hour delay on first check
+        
         refresh();
         setInterval(refresh, 5000);
         
@@ -2394,6 +2821,373 @@ def change_port():
     })
 
 
+@app.route('/api/update/check', methods=['GET'])
+def api_update_check():
+    """Check for available updates."""
+    force = request.args.get('force', 'false').lower() == 'true'
+    result = check_for_updates(force=force)
+    return jsonify(result)
+
+
+@app.route('/api/update/install', methods=['POST'])
+def api_update_install():
+    """Install the latest update."""
+    data = request.get_json() or {}
+    latest_version = data.get('version')
+    
+    if not latest_version:
+        # Get latest version from check
+        update_info = check_for_updates(force=True)
+        if not update_info['available']:
+            return jsonify({
+                'success': False,
+                'error': 'No update available'
+            }), 400
+        latest_version = update_info['latest_version']
+    
+    result = install_update(latest_version)
+    return jsonify(result)
+
+
+# Update system
+UPDATE_CHECK_CACHE = CONFIG_DIR / 'update_check.json'
+GITHUB_REPO = 'onelenyk/gradik'
+GITHUB_API_URL = f'https://api.github.com/repos/{GITHUB_REPO}/releases/latest'
+UPDATE_CHECK_CACHE_DURATION = 3600  # 1 hour
+
+
+def compare_versions(current, latest):
+    """Compare two version strings (semver format).
+    Returns: -1 if current < latest, 0 if equal, 1 if current > latest
+    """
+    def parse_version(v):
+        # Remove 'v' prefix if present
+        v = v.lstrip('v')
+        # Split by '.' and convert to int
+        parts = []
+        for part in v.split('.'):
+            # Handle pre-release versions (e.g., "1.0.8-beta.1")
+            if '-' in part:
+                part = part.split('-')[0]
+            try:
+                parts.append(int(part))
+            except ValueError:
+                parts.append(0)
+        # Pad to 3 parts (major.minor.patch)
+        while len(parts) < 3:
+            parts.append(0)
+        return parts[:3]
+    
+    try:
+        current_parts = parse_version(current)
+        latest_parts = parse_version(latest)
+        
+        for i in range(3):
+            if current_parts[i] < latest_parts[i]:
+                return -1
+            elif current_parts[i] > latest_parts[i]:
+                return 1
+        return 0
+    except Exception:
+        return 0  # If parsing fails, assume equal
+
+
+def get_binary_path():
+    """Get the path to the current binary.
+    Returns None if running as Python script (updates only work for binaries).
+    """
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller binary
+        exe_path = sys.executable
+        if os.path.isabs(exe_path):
+            return exe_path
+        # Try to find in PATH
+        full_path = shutil.which(exe_path)
+        if full_path:
+            return full_path
+        return exe_path
+    return None  # Running as Python script, updates not supported
+
+
+def check_for_updates(force=False):
+    """Check for available updates from GitHub Releases.
+    Returns: {
+        'available': bool,
+        'current_version': str,
+        'latest_version': str,
+        'release_url': str,
+        'sha256': str,
+        'changelog': str,
+        'error': str (if any)
+    }
+    """
+    result = {
+        'available': False,
+        'current_version': __version__,
+        'latest_version': None,
+        'release_url': None,
+        'sha256': None,
+        'changelog': None,
+        'error': None
+    }
+    
+    # Check cache first (unless forced)
+    if not force and UPDATE_CHECK_CACHE.exists():
+        try:
+            with open(UPDATE_CHECK_CACHE, 'r') as f:
+                cache = json.load(f)
+            cache_time = cache.get('last_check', 0)
+            if time.time() - cache_time < UPDATE_CHECK_CACHE_DURATION:
+                # Return cached result
+                return cache.get('last_result', result)
+        except (json.JSONDecodeError, IOError, KeyError):
+            pass
+    
+    # Only check for updates if running as binary
+    if not get_binary_path():
+        result['error'] = 'Updates only available for binary installations'
+        return result
+    
+    try:
+        # Fetch latest release from GitHub API
+        req = urllib.request.Request(
+            GITHUB_API_URL,
+            headers={'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Gradik-Updater'}
+        )
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            
+            latest_version = data.get('tag_name', '').lstrip('v')
+            release_url = data.get('html_url', '')
+            changelog = data.get('body', '')
+            
+            # Find binary asset and SHA256
+            assets = data.get('assets', [])
+            binary_url = None
+            sha256 = None
+            
+            for asset in assets:
+                if asset.get('name') == 'gradik':
+                    binary_url = asset.get('browser_download_url')
+                    # Try to extract SHA256 from release notes or assets
+                    # For now, we'll need to calculate it after download
+                    break
+            
+            if not binary_url:
+                result['error'] = 'Binary asset not found in release'
+                return result
+            
+            # Compare versions
+            if compare_versions(__version__, latest_version) < 0:
+                result['available'] = True
+                result['latest_version'] = latest_version
+                result['release_url'] = release_url
+                result['sha256'] = sha256  # Will be calculated during download
+                result['changelog'] = changelog[:500]  # Limit changelog length
+            else:
+                result['latest_version'] = latest_version
+            
+            # Cache result
+            try:
+                CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+                with open(UPDATE_CHECK_CACHE, 'w') as f:
+                    json.dump({
+                        'last_check': time.time(),
+                        'last_result': result
+                    }, f)
+            except IOError:
+                pass
+            
+            return result
+            
+    except urllib.error.URLError as e:
+        result['error'] = f'Network error: {str(e)}'
+        return result
+    except json.JSONDecodeError as e:
+        result['error'] = f'Invalid response: {str(e)}'
+        return result
+    except Exception as e:
+        result['error'] = f'Unexpected error: {str(e)}'
+        return result
+
+
+def install_update(latest_version):
+    """Download and install the update.
+    Returns: {'success': bool, 'message': str, 'error': str}
+    """
+    result = {'success': False, 'message': '', 'error': None}
+    
+    binary_path = get_binary_path()
+    if not binary_path:
+        result['error'] = 'Updates only available for binary installations'
+        return result
+    
+    if not os.path.exists(binary_path):
+        result['error'] = f'Binary not found at {binary_path}'
+        return result
+    
+    # Check if we have write permissions
+    if not os.access(binary_path, os.W_OK):
+        result['error'] = f'No write permission for {binary_path}. Try running with sudo.'
+        return result
+    
+    try:
+        # Get update info
+        update_info = check_for_updates(force=True)
+        if not update_info['available']:
+            result['error'] = 'No update available'
+            return result
+        
+        # Find binary download URL
+        req = urllib.request.Request(
+            GITHUB_API_URL,
+            headers={'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'Gradik-Updater'}
+        )
+        
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            assets = data.get('assets', [])
+            binary_url = None
+            
+            for asset in assets:
+                if asset.get('name') == 'gradik':
+                    binary_url = asset.get('browser_download_url')
+                    break
+            
+            if not binary_url:
+                result['error'] = 'Binary asset not found in release'
+                return result
+        
+        # Check if daemon is running
+        daemon_was_running = False
+        daemon_port = None
+        if get_running_pid():
+            daemon_was_running = True
+            config = load_config()
+            daemon_port = config.get('port', DEFAULT_PORT)
+            # Stop daemon
+            cmd_stop()
+            # Wait a moment for it to stop
+            time.sleep(2)
+        
+        # Download to temp file
+        temp_file = f'/tmp/gradik-update-{int(time.time())}'
+        
+        try:
+            # Download binary
+            req = urllib.request.Request(
+                binary_url,
+                headers={'User-Agent': 'Gradik-Updater'}
+            )
+            
+            with urllib.request.urlopen(req, timeout=30) as response:
+                total_size = int(response.headers.get('Content-Length', 0))
+                downloaded = 0
+                
+                with open(temp_file, 'wb') as f:
+                    while True:
+                        chunk = response.read(8192)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+            
+            # Make executable
+            os.chmod(temp_file, 0o755)
+            
+            # Verify it's a valid executable (basic checks)
+            # Check file size (should be reasonable, not empty or too small)
+            file_size = os.path.getsize(temp_file)
+            if file_size < 1024 * 100:  # At least 100KB
+                os.unlink(temp_file)
+                result['error'] = 'Downloaded binary is too small, may be corrupted'
+                return result
+            
+            # Try to verify it's executable by checking if it can run
+            try:
+                test_result = subprocess.run(
+                    [temp_file, '--version'],
+                    capture_output=True,
+                    timeout=5,
+                    stderr=subprocess.DEVNULL
+                )
+                # Version command should return 0 or contain version info
+                output = test_result.stdout.decode('utf-8', errors='ignore')
+                if 'gradik' not in output.lower() and test_result.returncode != 0:
+                    raise Exception('Downloaded binary appears invalid')
+            except subprocess.TimeoutExpired:
+                os.unlink(temp_file)
+                result['error'] = 'Downloaded binary verification timeout'
+                return result
+            except Exception as e:
+                # If --version doesn't work, try a simpler check
+                # Just verify the file is executable and has reasonable size
+                if not os.access(temp_file, os.X_OK):
+                    os.unlink(temp_file)
+                    result['error'] = 'Downloaded file is not executable'
+                    return result
+            
+            # Create backup
+            backup_file = f'{binary_path}.old'
+            if os.path.exists(backup_file):
+                os.unlink(backup_file)
+            shutil.copy2(binary_path, backup_file)
+            
+            # Atomic replacement
+            shutil.move(temp_file, binary_path)
+            os.chmod(binary_path, 0o755)
+            
+            # Restart daemon if it was running
+            if daemon_was_running:
+                time.sleep(1)
+                cmd_start(port=daemon_port, foreground=False)
+            
+            # Clean up old backup after a delay (in background)
+            def cleanup_backup():
+                time.sleep(86400)  # 24 hours
+                try:
+                    if os.path.exists(backup_file):
+                        os.unlink(backup_file)
+                except:
+                    pass
+            
+            # Start cleanup in background (non-blocking)
+            import threading
+            threading.Thread(target=cleanup_backup, daemon=True).start()
+            
+            result['success'] = True
+            result['message'] = f'Successfully updated to v{latest_version}'
+            
+            # Clear update check cache
+            if UPDATE_CHECK_CACHE.exists():
+                UPDATE_CHECK_CACHE.unlink()
+            
+            return result
+            
+        except urllib.error.URLError as e:
+            result['error'] = f'Download failed: {str(e)}'
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
+            return result
+        except Exception as e:
+            result['error'] = f'Installation failed: {str(e)}'
+            # Try to restore from backup
+            if os.path.exists(backup_file):
+                try:
+                    shutil.copy2(backup_file, binary_path)
+                    os.chmod(binary_path, 0o755)
+                except:
+                    pass
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
+            return result
+            
+    except Exception as e:
+        result['error'] = f'Unexpected error: {str(e)}'
+        return result
+
+
 # PID file for daemon management
 PID_FILE = CONFIG_DIR / 'gradik.pid'
 
@@ -2607,6 +3401,77 @@ def cmd_restart(port=None):
     return cmd_start(port)
 
 
+def cmd_update(check_only=False):
+    """Check for and install updates."""
+    print("🔄 Checking for updates...")
+    print()
+    
+    # Check if running as binary
+    binary_path = get_binary_path()
+    if not binary_path:
+        print("⚠️  Updates are only available for binary installations.")
+        print("   If you're running from source, update via git pull.")
+        return 1
+    
+    # Check for updates
+    update_info = check_for_updates(force=True)
+    
+    if update_info.get('error'):
+        print(f"❌ Error checking for updates: {update_info['error']}")
+        return 1
+    
+    current_version = update_info.get('current_version', __version__)
+    latest_version = update_info.get('latest_version', current_version)
+    
+    print(f"   Current version: v{current_version}")
+    print(f"   Latest version:  v{latest_version}")
+    print()
+    
+    if not update_info.get('available'):
+        print("✅ You're running the latest version!")
+        return 0
+    
+    # Update available
+    print(f"📦 Update available: v{latest_version}")
+    if update_info.get('changelog'):
+        changelog_preview = update_info['changelog'][:200]
+        if len(update_info['changelog']) > 200:
+            changelog_preview += "..."
+        print(f"   {changelog_preview}")
+    print()
+    
+    if check_only:
+        print("   Use 'gradik update' (without --check-only) to install the update.")
+        return 0
+    
+    # Ask for confirmation
+    try:
+        response = input("   Install update now? [y/N]: ").strip().lower()
+        if response not in ['y', 'yes']:
+            print("   Update cancelled.")
+            return 0
+    except (EOFError, KeyboardInterrupt):
+        print()
+        print("   Update cancelled.")
+        return 0
+    
+    print()
+    print("📥 Downloading and installing update...")
+    
+    result = install_update(latest_version)
+    
+    if result['success']:
+        print()
+        print(f"✅ {result['message']}")
+        print()
+        print("   The app has been updated and restarted (if it was running).")
+        return 0
+    else:
+        print()
+        print(f"❌ Update failed: {result.get('error', 'Unknown error')}")
+        return 1
+
+
 def cmd_uninstall():
     """Uninstall Gradik completely."""
     import shutil
@@ -2708,6 +3573,10 @@ def main():
     # uninstall command
     subparsers.add_parser('uninstall', help='Uninstall Gradik completely')
     
+    # update command
+    update_parser = subparsers.add_parser('update', help='Check for and install updates')
+    update_parser.add_argument('--check-only', action='store_true', help='Only check for updates, do not install')
+    
     # For backwards compatibility: run directly without subcommand
     parser.add_argument('-p', '--port', type=int, help='Port to run on (when running directly)')
     
@@ -2723,6 +3592,8 @@ def main():
         return cmd_status()
     elif args.command == 'uninstall':
         return cmd_uninstall()
+    elif args.command == 'update':
+        return cmd_update(check_only=args.check_only)
     else:
         # No subcommand - show help instead of auto-starting
         parser.print_help()
