@@ -21,6 +21,7 @@ echo "⚙️  Creating standalone binary..."
 pyinstaller --onefile \
     --name gradik \
     --add-data "gradik:gradik" \
+    --add-data "VERSION:." \
     --hidden-import flask \
     --hidden-import psutil \
     --hidden-import certifi \

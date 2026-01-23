@@ -23,10 +23,35 @@ APP_PID = os.getpid()
 
 # Version - read from VERSION file
 def get_version():
-    """Get version from VERSION file."""
-    version_file = Path(__file__).parent / 'VERSION'
-    if version_file.exists():
-        return version_file.read_text().strip()
+    """Get version from VERSION file.
+    Handles both normal execution and PyInstaller binary execution.
+    """
+    # Try multiple locations
+    possible_paths = []
+    
+    # Normal execution: VERSION file next to app.py
+    possible_paths.append(Path(__file__).parent / 'VERSION')
+    
+    # PyInstaller binary: VERSION file in temp directory
+    if getattr(sys, 'frozen', False):
+        # Running as PyInstaller binary
+        if hasattr(sys, '_MEIPASS'):
+            # PyInstaller creates a temp folder and stores path in _MEIPASS
+            possible_paths.append(Path(sys._MEIPASS) / 'VERSION')
+        # Also try next to the executable
+        if sys.executable:
+            possible_paths.append(Path(sys.executable).parent / 'VERSION')
+    
+    # Try each path
+    for version_file in possible_paths:
+        if version_file.exists():
+            try:
+                version = version_file.read_text().strip()
+                if version:  # Make sure it's not empty
+                    return version
+            except (IOError, OSError):
+                continue
+    
     return '0.0.0'
 
 __version__ = get_version()
